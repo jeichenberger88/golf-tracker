@@ -73,8 +73,9 @@ This is a single-page golf tracking application with the following key component
   yardage: number, // Course yardage for selected tees
   
   // Hole-by-Hole Scoring (optional)
-  holeByHoleScores: Array<string> | null, // Array of 18 hole scores
-  useHoleByHole: boolean // Whether hole-by-hole scoring was used
+  holeByHoleScores: Array<string> | null, // Array of hole scores (9 or 18)
+  useHoleByHole: boolean, // Whether hole-by-hole scoring was used
+  roundType: string // '9' or '18' holes
 }
 ```
 
@@ -102,8 +103,10 @@ This is a single-page golf tracking application with the following key component
    - **API Ready**: Prepared for integration with GolfCourseAPI.com (30,000+ courses)
 
 4. **Flexible Scoring Options** 🎯:
-   - **Total Score Entry**: Traditional single score input
-   - **Hole-by-Hole Scoring**: Detailed 18-hole score tracking with live totals
+   - **Round Type Selection**: Choose between 9-hole or 18-hole rounds
+   - **Total Score Entry**: Traditional single score input for any round type
+   - **Hole-by-Hole Scoring**: Detailed hole-by-hole score tracking with live totals
+   - **Adaptive Interface**: Grid automatically adjusts for 9 or 18 holes
    - **Real-time Calculations**: Automatic front 9, back 9, and total score calculations
    - **Progress Tracking**: Visual indication of holes completed during round entry
 
@@ -178,6 +181,8 @@ The smart recommendations system analyzes golf performance data to provide perso
 - **Course Familiarity Impact**: Analyzes performance differences between familiar and new courses
 - **Hole-by-Hole Analysis**: Identifies trouble holes and front 9 vs back 9 performance patterns
 - **Round Consistency**: Tracks scoring patterns within individual rounds
+- **Round Type Optimization**: Analyzes performance differences between 9-hole and 18-hole rounds
+- **Format-Specific Recommendations**: Suggestions based on preferred round length and performance patterns
 
 **Recommendation Types**:
 - **Practice Focus Areas**: Specific skills to work on based on statistical weaknesses

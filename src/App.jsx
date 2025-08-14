@@ -7,6 +7,7 @@ function App() {
   const [showCourseSearch, setShowCourseSearch] = useState(false)
   const [courseSearchQuery, setCourseSearchQuery] = useState('')
   const [useHoleByHole, setUseHoleByHole] = useState(false)
+  const [roundType, setRoundType] = useState('18') // '9' or '18'
   const [holeByHoleScores, setHoleByHoleScores] = useState(Array(18).fill(''))
   const [currentRound, setCurrentRound] = useState({
     course: '',
@@ -31,12 +32,19 @@ function App() {
     drivingDistance: '',
     notes: '',
     holeByHoleScores: null, // Array of hole scores when using hole-by-hole
-    useHoleByHole: false
+    useHoleByHole: false,
+    roundType: '18' // '9' or '18' holes
   })
 
   // Calculate total score from hole-by-hole scores
-  const calculateTotalScore = (holes) => {
-    return holes.filter(score => score !== '').reduce((total, score) => total + parseInt(score), 0)
+  const calculateTotalScore = (holes, roundTypeParam = roundType) => {
+    const maxHoles = roundTypeParam === '9' ? 9 : 18
+    return holes.slice(0, maxHoles).filter(score => score !== '').reduce((total, score) => total + parseInt(score), 0)
+  }
+
+  // Get the number of holes for current round type
+  const getHoleCount = (roundTypeParam = roundType) => {
+    return roundTypeParam === '9' ? 9 : 18
   }
 
   // Handle hole score change
@@ -46,9 +54,24 @@ function App() {
     setHoleByHoleScores(newScores)
     
     // Auto-calculate total score
-    const totalScore = calculateTotalScore(newScores)
+    const totalScore = calculateTotalScore(newScores, roundType)
     if (totalScore > 0) {
       setCurrentRound({...currentRound, score: totalScore})
+    }
+  }
+
+  // Handle round type change
+  const handleRoundTypeChange = (newRoundType) => {
+    setRoundType(newRoundType)
+    
+    // Update par based on round type (default assumption)
+    const newPar = newRoundType === '9' ? 36 : 72
+    setCurrentRound({...currentRound, par: newPar, roundType: newRoundType})
+    
+    // Clear hole scores when switching types
+    if (useHoleByHole) {
+      setHoleByHoleScores(Array(18).fill(''))
+      setCurrentRound({...currentRound, score: '', par: newPar, roundType: newRoundType})
     }
   }
 
@@ -63,7 +86,7 @@ function App() {
       setHoleByHoleScores(Array(18).fill(''))
     } else {
       // Switching to total score: calculate from hole scores if available
-      const totalScore = calculateTotalScore(holeByHoleScores)
+      const totalScore = calculateTotalScore(holeByHoleScores, roundType)
       if (totalScore > 0) {
         setCurrentRound({...currentRound, score: totalScore})
       }
@@ -72,15 +95,16 @@ function App() {
 
   const addRound = () => {
     const isValidRound = currentRound.course && currentRound.date && 
-      (currentRound.score || (useHoleByHole && calculateTotalScore(holeByHoleScores) > 0))
+      (currentRound.score || (useHoleByHole && calculateTotalScore(holeByHoleScores, roundType) > 0))
     
     if (isValidRound) {
-      const finalScore = useHoleByHole ? calculateTotalScore(holeByHoleScores) : currentRound.score
+      const finalScore = useHoleByHole ? calculateTotalScore(holeByHoleScores, roundType) : currentRound.score
       const roundData = {
         ...currentRound,
         score: finalScore,
         holeByHoleScores: useHoleByHole ? [...holeByHoleScores] : null,
         useHoleByHole: useHoleByHole,
+        roundType: roundType,
         id: Date.now()
       }
       
@@ -108,17 +132,32 @@ function App() {
         drivingDistance: '',
         notes: '',
         holeByHoleScores: null,
-        useHoleByHole: false
+        useHoleByHole: false,
+        roundType: '18',
+        roundType: '18'
       })
       setUseHoleByHole(false)
       setHoleByHoleScores(Array(18).fill(''))
+      setRoundType('18')
     }
   }
 
   const calculateHandicap = () => {
     if (rounds.length === 0) return 0
-    const scores = rounds.map(round => round.score - round.par)
-    const average = scores.reduce((sum, score) => sum + score, 0) / scores.length
+    
+    // Convert 9-hole rounds to 18-hole equivalents for handicap calculation
+    const normalizedScores = rounds.map(round => {
+      const roundType = round.roundType || '18'
+      if (roundType === '9') {
+        // Double the 9-hole differential for handicap calculation
+        const nineDiff = round.score - round.par
+        return nineDiff * 2
+      } else {
+        return round.score - round.par
+      }
+    })
+    
+    const average = normalizedScores.reduce((sum, score) => sum + score, 0) / normalizedScores.length
     return Math.max(0, Math.round(average * 0.96))
   }
 
@@ -260,6 +299,12 @@ function App() {
     const holeAnalysis = analyzeHoleByHolePerformance(recentRounds)
     if (holeAnalysis.length > 0) {
       recommendations.push(...holeAnalysis)
+    }
+    
+    // Round type analysis (9-hole vs 18-hole)
+    const roundTypeAnalysis = analyzeRoundTypePerformance(rounds) // Use all rounds for this analysis
+    if (roundTypeAnalysis.length > 0) {
+      recommendations.push(...roundTypeAnalysis)
     }
 
     // If no specific issues found, provide general advice
@@ -464,6 +509,62 @@ function App() {
     return holeRecommendations
   }
 
+  // Analysis for 9-hole vs 18-hole performance
+  const analyzeRoundTypePerformance = (rounds) => {
+    const roundTypeRecommendations = []
+    const nineHoleRounds = rounds.filter(r => r.roundType === '9')
+    const eighteenHoleRounds = rounds.filter(r => (r.roundType || '18') === '18')
+    
+    if (nineHoleRounds.length >= 2 && eighteenHoleRounds.length >= 2) {
+      // Calculate average per-hole performance
+      const nineHoleAvgPerHole = nineHoleRounds.reduce((sum, r) => sum + (r.score - r.par), 0) / nineHoleRounds.length / 9
+      const eighteenHoleAvgPerHole = eighteenHoleRounds.reduce((sum, r) => sum + (r.score - r.par), 0) / eighteenHoleRounds.length / 18
+      
+      const difference = Math.abs(nineHoleAvgPerHole - eighteenHoleAvgPerHole)
+      
+      if (difference > 0.3) {
+        const betterFormat = nineHoleAvgPerHole < eighteenHoleAvgPerHole ? '9-hole' : '18-hole'
+        const worseFormat = nineHoleAvgPerHole > eighteenHoleAvgPerHole ? '9-hole' : '18-hole'
+        
+        roundTypeRecommendations.push({
+          category: 'Round Format',
+          icon: '🔄',
+          title: `${betterFormat.charAt(0).toUpperCase() + betterFormat.slice(1)} Performance Advantage`,
+          description: `You perform ${difference.toFixed(1)} strokes per hole better in ${betterFormat} rounds vs ${worseFormat} rounds. This suggests ${worseFormat === '18-hole' ? 'fatigue or concentration issues in longer rounds' : 'you may rush or lack focus in shorter rounds'}.`,
+          priority: 'medium',
+          actionItems: [
+            worseFormat === '18-hole' ? 'Work on fitness and endurance training' : 'Practice maintaining focus in shorter rounds',
+            worseFormat === '18-hole' ? 'Develop better nutrition and hydration strategy' : 'Set specific goals for each hole in 9-hole rounds',
+            `Play more ${worseFormat} rounds to build consistency`
+          ]
+        })
+      }
+    }
+    
+    // Recommend optimal practice format
+    if (nineHoleRounds.length > 0 && eighteenHoleRounds.length === 0) {
+      roundTypeRecommendations.push({
+        category: 'Round Variety',
+        icon: '🎯',
+        title: 'Try 18-Hole Rounds',
+        description: 'You\'ve only played 9-hole rounds. Try some 18-hole rounds to get a complete picture of your endurance and consistency.',
+        priority: 'low',
+        actionItems: ['Schedule an 18-hole round', 'Test your stamina over a full round', 'Compare performance between formats']
+      })
+    } else if (eighteenHoleRounds.length > 0 && nineHoleRounds.length === 0) {
+      roundTypeRecommendations.push({
+        category: 'Practice Efficiency',
+        icon: '⏱️',
+        title: 'Consider 9-Hole Practice Rounds',
+        description: '9-hole rounds can be great for focused practice and skill development when time is limited.',
+        priority: 'low',
+        actionItems: ['Try 9-hole rounds for targeted practice', 'Use shorter rounds to work on specific skills', 'Practice course management in condensed format']
+      })
+    }
+    
+    return roundTypeRecommendations
+  }
+
   // Golf Course Database (Popular courses with ratings)
   const popularCourses = {
     "Pebble Beach Golf Links": {
@@ -657,6 +758,10 @@ function App() {
         <div className="stat-card">
           <h3>Rounds Played</h3>
           <span className="stat-number">{rounds.length}</span>
+          <div className="stat-breakdown">
+            <small>{rounds.filter(r => (r.roundType || '18') === '18').length} × 18-hole</small>
+            <small>{rounds.filter(r => r.roundType === '9').length} × 9-hole</small>
+          </div>
         </div>
         <div className="stat-card">
           <h3>Estimated Handicap</h3>
@@ -774,8 +879,8 @@ function App() {
                 />
               ) : (
                 <div className="total-score-display">
-                  <span className="total-label">Total Score:</span>
-                  <span className="total-value">{calculateTotalScore(holeByHoleScores) || 0}</span>
+                  <span className="total-label">Total Score ({roundType} holes):</span>
+                  <span className="total-value">{calculateTotalScore(holeByHoleScores, roundType) || 0}</span>
                 </div>
               )}
             </div>
@@ -785,6 +890,15 @@ function App() {
               value={currentRound.par}
               onChange={(e) => setCurrentRound({...currentRound, par: parseInt(e.target.value) || 72})}
             />
+            
+            <select
+              value={roundType}
+              onChange={(e) => handleRoundTypeChange(e.target.value)}
+              className="round-type-select"
+            >
+              <option value="18">18 Holes</option>
+              <option value="9">9 Holes</option>
+            </select>
             <select
               value={currentRound.tees}
               onChange={(e) => handleTeeChange(e.target.value)}
@@ -817,9 +931,9 @@ function App() {
 
         {useHoleByHole && (
           <div className="form-section">
-            <h3>🎯 Hole-by-Hole Scoring</h3>
+            <h3>🎯 Hole-by-Hole Scoring ({roundType} Holes)</h3>
             <div className="holes-grid">
-              {Array.from({length: 18}, (_, i) => (
+              {Array.from({length: getHoleCount()}, (_, i) => (
                 <div key={i} className="hole-input">
                   <label className="hole-label">Hole {i + 1}</label>
                   <input
@@ -836,14 +950,22 @@ function App() {
             </div>
             <div className="holes-summary">
               <div className="holes-progress">
-                <span>Holes completed: {holeByHoleScores.filter(score => score !== '').length}/18</span>
+                <span>Holes completed: {holeByHoleScores.slice(0, getHoleCount()).filter(score => score !== '').length}/{getHoleCount()}</span>
               </div>
-              <div className="front-nine">
-                <span>Front 9: {calculateTotalScore(holeByHoleScores.slice(0, 9))}</span>
-              </div>
-              <div className="back-nine">
-                <span>Back 9: {calculateTotalScore(holeByHoleScores.slice(9, 18))}</span>
-              </div>
+              {roundType === '18' ? (
+                <>
+                  <div className="front-nine">
+                    <span>Front 9: {calculateTotalScore(holeByHoleScores.slice(0, 9), '9')}</span>
+                  </div>
+                  <div className="back-nine">
+                    <span>Back 9: {calculateTotalScore(holeByHoleScores.slice(9, 18), '9')}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="nine-holes">
+                  <span>9 Holes: {calculateTotalScore(holeByHoleScores.slice(0, 9), '9')}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -999,6 +1121,7 @@ function App() {
                   <h3>{round.course}</h3>
                   <span className="round-date">{round.date}</span>
                   <span className="tees-badge">{round.tees} tees</span>
+                  <span className="round-type-badge">{round.roundType || '18'} holes</span>
                 </div>
                 
                 {(round.courseRating || round.yardage) && (
@@ -1050,9 +1173,11 @@ function App() {
                 
                 {round.holeByHoleScores && (
                   <div className="round-holes">
-                    <h4>Hole-by-Hole Scores</h4>
+                    <h4>Hole-by-Hole Scores ({round.roundType || '18'} holes)</h4>
                     <div className="round-holes-grid">
-                      {round.holeByHoleScores.map((score, index) => (
+                      {round.holeByHoleScores
+                        .slice(0, round.roundType === '9' ? 9 : 18)
+                        .map((score, index) => (
                         <div key={index} className="round-hole-score">
                           <span className="hole-number">{index + 1}</span>
                           <span className="hole-score">{score || '-'}</span>
@@ -1060,8 +1185,14 @@ function App() {
                       ))}
                     </div>
                     <div className="round-holes-summary">
-                      <span>Front 9: {round.holeByHoleScores.slice(0, 9).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)}</span>
-                      <span>Back 9: {round.holeByHoleScores.slice(9, 18).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)}</span>
+                      {round.roundType === '9' ? (
+                        <span>9 Holes: {round.holeByHoleScores.slice(0, 9).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)}</span>
+                      ) : (
+                        <>
+                          <span>Front 9: {round.holeByHoleScores.slice(0, 9).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)}</span>
+                          <span>Back 9: {round.holeByHoleScores.slice(9, 18).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

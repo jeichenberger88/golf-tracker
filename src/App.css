@@ -51,6 +51,19 @@ header p {
   display: block;
 }
 
+.stat-breakdown {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-breakdown small {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  font-weight: normal;
+}
+
 .add-round-section {
   background: #f8f9fa;
   padding: 2rem;
@@ -370,6 +383,15 @@ header p {
   .holes-summary {
     grid-template-columns: 1fr;
   }
+  
+  .round-header {
+    flex-wrap: wrap;
+  }
+  
+  .round-type-badge {
+    order: 3;
+    margin-top: 0.5rem;
+  }
 }
 
 .add-round-btn {
@@ -558,6 +580,31 @@ header p {
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
+}
+
+.round-type-badge {
+  background: #2d5016;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.round-type-select {
+  padding: 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  background: white;
+  font-weight: 500;
+  color: #2d5016;
+}
+
+.round-type-select:focus {
+  outline: none;
+  border-color: #4a7c59;
 }
 
 .round-course-info {
