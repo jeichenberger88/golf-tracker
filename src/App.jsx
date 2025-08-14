@@ -55,6 +55,170 @@ function App() {
     return Math.max(0, Math.round(average * 0.96))
   }
 
+  // AI Recommendations Engine
+  const generateRecommendations = () => {
+    if (rounds.length < 2) {
+      return [
+        {
+          category: 'Getting Started',
+          icon: '🎯',
+          title: 'Track More Rounds',
+          description: 'Add a few more rounds to unlock personalized AI insights and recommendations.',
+          priority: 'high'
+        }
+      ]
+    }
+
+    const recommendations = []
+    const recentRounds = rounds.slice(-5) // Last 5 rounds for analysis
+    
+    // Calculate statistics
+    const avgPutts = recentRounds.filter(r => r.putts).reduce((sum, r) => sum + parseInt(r.putts), 0) / recentRounds.filter(r => r.putts).length
+    const fwHitRate = calculateFairwayPercentage(recentRounds)
+    const girRate = calculateGIRPercentage(recentRounds)
+    const avgScore = recentRounds.reduce((sum, r) => sum + r.score, 0) / recentRounds.length
+    const avgPenalties = recentRounds.filter(r => r.penalties).reduce((sum, r) => sum + parseInt(r.penalties), 0) / recentRounds.filter(r => r.penalties).length
+
+    // Putting Analysis
+    if (avgPutts > 33) {
+      recommendations.push({
+        category: 'Short Game',
+        icon: '⛳',
+        title: 'Focus on Putting Practice',
+        description: `Your recent putting average is ${avgPutts.toFixed(1)} putts per round. Tour average is 29-30. Spend 30% of practice time on putting drills.`,
+        priority: 'high',
+        actionItems: ['Practice 3-foot putts until 95% success rate', 'Work on lag putting from 30+ feet', 'Focus on green reading skills']
+      })
+    } else if (avgPutts < 30) {
+      recommendations.push({
+        category: 'Strength Area',
+        icon: '🎯',
+        title: 'Putting is Your Strength',
+        description: `Excellent putting! Average of ${avgPutts.toFixed(1)} putts per round. Maintain this strength while working on other areas.`,
+        priority: 'low'
+      })
+    }
+
+    // Driving Analysis
+    if (fwHitRate < 50 && fwHitRate > 0) {
+      recommendations.push({
+        category: 'Driving',
+        icon: '🏌️',
+        title: 'Improve Driving Accuracy',
+        description: `Hitting ${fwHitRate.toFixed(0)}% of fairways. Focus on accuracy over distance. Aim for 60%+ fairway accuracy.`,
+        priority: 'high',
+        actionItems: ['Practice with alignment sticks', 'Consider shorter, more controlled swings', 'Work on setup and tempo']
+      })
+    } else if (fwHitRate > 70) {
+      recommendations.push({
+        category: 'Strength Area',
+        icon: '💪',
+        title: 'Excellent Driving Accuracy',
+        description: `Outstanding fairway accuracy at ${fwHitRate.toFixed(0)}%! Consider adding distance while maintaining accuracy.`,
+        priority: 'low'
+      })
+    }
+
+    // Approach Shot Analysis
+    if (girRate < 40 && girRate > 0) {
+      recommendations.push({
+        category: 'Iron Play',
+        icon: '🎪',
+        title: 'Work on Approach Shots',
+        description: `${girRate.toFixed(0)}% GIR rate needs improvement. Tour average is 60-65%. Focus on iron accuracy and distance control.`,
+        priority: 'high',
+        actionItems: ['Practice with targets at driving range', 'Work on yardage precision', 'Focus on club selection']
+      })
+    }
+
+    // Penalty Analysis
+    if (avgPenalties > 1) {
+      recommendations.push({
+        category: 'Course Management',
+        icon: '🧠',
+        title: 'Reduce Penalty Strokes',
+        description: `Averaging ${avgPenalties.toFixed(1)} penalties per round. Smart course management can save 2-3 strokes per round.`,
+        priority: 'high',
+        actionItems: ['Play more conservatively off tees', 'Avoid water hazards and OB', 'Choose safer targets']
+      })
+    }
+
+    // Weather-based recommendations
+    const windyRounds = recentRounds.filter(r => r.wind === 'strong' || r.wind === 'moderate')
+    if (windyRounds.length > 0) {
+      const windyAvg = windyRounds.reduce((sum, r) => sum + r.score, 0) / windyRounds.length
+      const calmAvg = recentRounds.filter(r => r.wind === 'calm' || r.wind === 'light').reduce((sum, r) => sum + r.score, 0) / recentRounds.filter(r => r.wind === 'calm' || r.wind === 'light').length
+      
+      if (windyAvg - calmAvg > 3) {
+        recommendations.push({
+          category: 'Weather Adaptation',
+          icon: '🌬️',
+          title: 'Improve Wind Play',
+          description: `You score ${(windyAvg - calmAvg).toFixed(0)} strokes higher in wind. Practice wind management techniques.`,
+          priority: 'medium',
+          actionItems: ['Practice lower ball flights', 'Club up and swing easier', 'Focus on balance and tempo']
+        })
+      }
+    }
+
+    // Score trend analysis
+    if (recentRounds.length >= 3) {
+      const trend = recentRounds[recentRounds.length - 1].score - recentRounds[0].score
+      if (trend > 3) {
+        recommendations.push({
+          category: 'Performance Trend',
+          icon: '📈',
+          title: 'Scores Trending Up',
+          description: 'Recent rounds show score increase. Consider lessons or focused practice to address fundamentals.',
+          priority: 'medium'
+        })
+      } else if (trend < -3) {
+        recommendations.push({
+          category: 'Performance Trend',
+          icon: '📉',
+          title: 'Great Improvement!',
+          description: 'Scores are trending down - keep up the excellent work! Your practice is paying off.',
+          priority: 'low'
+        })
+      }
+    }
+
+    // If no specific issues found, provide general advice
+    if (recommendations.length === 0) {
+      recommendations.push({
+        category: 'General',
+        icon: '🎯',
+        title: 'Consistent Performance',
+        description: 'Your game is well-balanced! Focus on maintaining consistency and small improvements across all areas.',
+        priority: 'low',
+        actionItems: ['Continue current practice routine', 'Set specific improvement goals', 'Track progress over time']
+      })
+    }
+
+    return recommendations.sort((a, b) => {
+      const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 }
+      return priorityOrder[b.priority] - priorityOrder[a.priority]
+    })
+  }
+
+  const calculateFairwayPercentage = (rounds) => {
+    const validRounds = rounds.filter(r => r.fairwaysHit && r.fairwaysHit.includes('/'))
+    if (validRounds.length === 0) return 0
+    
+    const totalHit = validRounds.reduce((sum, r) => sum + parseInt(r.fairwaysHit.split('/')[0]), 0)
+    const totalAttempts = validRounds.reduce((sum, r) => sum + parseInt(r.fairwaysHit.split('/')[1]), 0)
+    return (totalHit / totalAttempts) * 100
+  }
+
+  const calculateGIRPercentage = (rounds) => {
+    const validRounds = rounds.filter(r => r.greensInRegulation && r.greensInRegulation.includes('/'))
+    if (validRounds.length === 0) return 0
+    
+    const totalHit = validRounds.reduce((sum, r) => sum + parseInt(r.greensInRegulation.split('/')[0]), 0)
+    const totalAttempts = validRounds.reduce((sum, r) => sum + parseInt(r.greensInRegulation.split('/')[1]), 0)
+    return (totalHit / totalAttempts) * 100
+  }
+
   return (
     <div className="golf-app">
       <header>
@@ -246,6 +410,39 @@ function App() {
         </div>
 
         <button onClick={addRound} className="add-round-btn">Add Round</button>
+      </div>
+
+      {/* AI Recommendations Section */}
+      <div className="recommendations-section">
+        <h2>🤖 AI Recommendations</h2>
+        <p className="section-subtitle">Personalized insights to improve your game</p>
+        <div className="recommendations-grid">
+          {generateRecommendations().map((rec, index) => (
+            <div key={index} className={`recommendation-card ${rec.priority}`}>
+              <div className="rec-header">
+                <span className="rec-icon">{rec.icon}</span>
+                <div className="rec-title-group">
+                  <h3>{rec.title}</h3>
+                  <span className="rec-category">{rec.category}</span>
+                </div>
+                <span className={`priority-badge ${rec.priority}`}>
+                  {rec.priority === 'high' ? '🔴' : rec.priority === 'medium' ? '🟡' : '🟢'}
+                </span>
+              </div>
+              <p className="rec-description">{rec.description}</p>
+              {rec.actionItems && (
+                <div className="action-items">
+                  <h4>Action Steps:</h4>
+                  <ul>
+                    {rec.actionItems.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="rounds-section">

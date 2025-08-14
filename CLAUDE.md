@@ -69,27 +69,35 @@ This is a single-page golf tracking application with the following key component
 ```
 
 **Key Features**:
-1. **Enhanced Statistics Dashboard**: 
+1. **AI-Powered Recommendations Engine** 🤖:
+   - **Performance Analysis**: Identifies strengths and weaknesses across all game areas
+   - **Practice Focus**: Specific recommendations on what to work on next
+   - **Course Strategy**: Smart play suggestions based on performance patterns
+   - **Weather Adaptation**: Tips for playing in different conditions
+   - **Trend Analysis**: Recognizes scoring patterns and improvement areas
+   - **Priority System**: High/medium/low priority recommendations with action steps
+
+2. **Enhanced Statistics Dashboard**: 
    - Rounds played and estimated handicap
    - Best score tracking
    - Average putts per round
    - Fairways hit percentage
    - Greens in regulation percentage
 
-2. **Comprehensive Round Entry Form**:
+3. **Comprehensive Round Entry Form**:
    - Basic round info (course, date, score, par, tees)
    - Course conditions (weather, temperature, wind, course condition)
    - Performance statistics (fairways hit, GIR, putts, chips, bunker shots, penalties, driving distance)
    - Round notes for observations and improvement areas
 
-3. **Detailed Round History**: Shows last 10 rounds with:
+4. **Detailed Round History**: Shows last 10 rounds with:
    - Score and par differential
    - Tee selection indicator
    - Course conditions with weather icons
    - Performance statistics grid
    - Personal notes and observations
 
-4. **Advanced Analytics**:
+5. **Advanced Analytics**:
    - Handicap calculation using score differential
    - Fairway accuracy percentage calculation
    - Greens in regulation percentage
@@ -131,13 +139,38 @@ The application now tracks comprehensive golf performance data including:
 ### Handicap Calculation
 The current handicap calculation is simplified (average differential × 0.96). Official USGA handicap calculation requires course ratings, slope ratings, and more complex algorithms.
 
+### AI Recommendations Engine
+The smart recommendations system analyzes golf performance data to provide personalized insights:
+
+**Analysis Categories**:
+- **Short Game**: Putting performance analysis with specific improvement targets
+- **Driving**: Fairway accuracy assessment and distance vs accuracy optimization
+- **Iron Play**: Greens in regulation analysis and approach shot recommendations
+- **Course Management**: Penalty stroke reduction and smart play strategies
+- **Weather Adaptation**: Performance correlation with weather conditions
+- **Performance Trends**: Score trending analysis and momentum recognition
+
+**Recommendation Types**:
+- **Practice Focus Areas**: Specific skills to work on based on statistical weaknesses
+- **Action Items**: Concrete steps to improve performance (e.g., "Practice 3-foot putts until 95% success rate")
+- **Strategic Advice**: Course management tips based on individual performance patterns
+- **Equipment Suggestions**: Recommendations based on distance and accuracy data
+- **Mental Game**: Psychological insights from performance trends
+
+**Priority System**: 
+- 🔴 **High Priority**: Major weaknesses that significantly impact scoring
+- 🟡 **Medium Priority**: Areas with moderate improvement potential
+- 🟢 **Low Priority**: Strengths to maintain or minor optimizations
+
 ### Data Analysis Opportunities
-With the enhanced data model, the application can provide insights into:
+With the enhanced data model and AI engine, the application provides insights into:
 - Performance trends under different weather conditions
 - Correlation between course conditions and scoring
 - Strengths and weaknesses identification (driving vs putting vs short game)
 - Progress tracking over time for specific skills
 - Tee selection impact on performance
+- Personalized improvement roadmaps
+- Predictive performance modeling
 
 ### Testing
 No test framework is currently configured. Consider adding Vitest for unit testing React components.
