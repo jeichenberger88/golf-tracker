@@ -1,14 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
   const [rounds, setRounds] = useState([])
+  const [courseSearchResults, setCourseSearchResults] = useState([])
+  const [showCourseSearch, setShowCourseSearch] = useState(false)
+  const [courseSearchQuery, setCourseSearchQuery] = useState('')
+  const [useHoleByHole, setUseHoleByHole] = useState(false)
+  const [holeByHoleScores, setHoleByHoleScores] = useState(Array(18).fill(''))
   const [currentRound, setCurrentRound] = useState({
     course: '',
     date: '',
     score: '',
     par: 72,
     tees: 'white',
+    courseId: '',
+    courseRating: '',
+    slopeRating: '',
+    yardage: '',
     weather: '',
     temperature: '',
     wind: '',
@@ -20,18 +29,72 @@ function App() {
     bunkerShots: '',
     penalties: '',
     drivingDistance: '',
-    notes: ''
+    notes: '',
+    holeByHoleScores: null, // Array of hole scores when using hole-by-hole
+    useHoleByHole: false
   })
 
+  // Calculate total score from hole-by-hole scores
+  const calculateTotalScore = (holes) => {
+    return holes.filter(score => score !== '').reduce((total, score) => total + parseInt(score), 0)
+  }
+
+  // Handle hole score change
+  const handleHoleScoreChange = (holeIndex, score) => {
+    const newScores = [...holeByHoleScores]
+    newScores[holeIndex] = score
+    setHoleByHoleScores(newScores)
+    
+    // Auto-calculate total score
+    const totalScore = calculateTotalScore(newScores)
+    if (totalScore > 0) {
+      setCurrentRound({...currentRound, score: totalScore})
+    }
+  }
+
+  // Toggle between scoring methods
+  const toggleScoringMethod = () => {
+    const newUseHoleByHole = !useHoleByHole
+    setUseHoleByHole(newUseHoleByHole)
+    
+    if (newUseHoleByHole) {
+      // Switching to hole-by-hole: clear total score, set up hole scores
+      setCurrentRound({...currentRound, score: ''})
+      setHoleByHoleScores(Array(18).fill(''))
+    } else {
+      // Switching to total score: calculate from hole scores if available
+      const totalScore = calculateTotalScore(holeByHoleScores)
+      if (totalScore > 0) {
+        setCurrentRound({...currentRound, score: totalScore})
+      }
+    }
+  }
+
   const addRound = () => {
-    if (currentRound.course && currentRound.date && currentRound.score) {
-      setRounds([...rounds, { ...currentRound, id: Date.now() }])
+    const isValidRound = currentRound.course && currentRound.date && 
+      (currentRound.score || (useHoleByHole && calculateTotalScore(holeByHoleScores) > 0))
+    
+    if (isValidRound) {
+      const finalScore = useHoleByHole ? calculateTotalScore(holeByHoleScores) : currentRound.score
+      const roundData = {
+        ...currentRound,
+        score: finalScore,
+        holeByHoleScores: useHoleByHole ? [...holeByHoleScores] : null,
+        useHoleByHole: useHoleByHole,
+        id: Date.now()
+      }
+      
+      setRounds([...rounds, roundData])
       setCurrentRound({ 
         course: '', 
         date: '', 
         score: '', 
         par: 72,
         tees: 'white',
+        courseId: '',
+        courseRating: '',
+        slopeRating: '',
+        yardage: '',
         weather: '',
         temperature: '',
         wind: '',
@@ -43,8 +106,12 @@ function App() {
         bunkerShots: '',
         penalties: '',
         drivingDistance: '',
-        notes: ''
+        notes: '',
+        holeByHoleScores: null,
+        useHoleByHole: false
       })
+      setUseHoleByHole(false)
+      setHoleByHoleScores(Array(18).fill(''))
     }
   }
 
@@ -183,6 +250,18 @@ function App() {
       }
     }
 
+    // Course-specific analysis
+    const coursePerformance = analyzeCoursePerformance(recentRounds)
+    if (coursePerformance.length > 0) {
+      recommendations.push(...coursePerformance)
+    }
+    
+    // Hole-by-hole analysis
+    const holeAnalysis = analyzeHoleByHolePerformance(recentRounds)
+    if (holeAnalysis.length > 0) {
+      recommendations.push(...holeAnalysis)
+    }
+
     // If no specific issues found, provide general advice
     if (recommendations.length === 0) {
       recommendations.push({
@@ -218,6 +297,354 @@ function App() {
     const totalAttempts = validRounds.reduce((sum, r) => sum + parseInt(r.greensInRegulation.split('/')[1]), 0)
     return (totalHit / totalAttempts) * 100
   }
+
+  // Course-specific performance analysis
+  const analyzeCoursePerformance = (rounds) => {
+    const courseRecommendations = []
+    
+    // Analyze performance by course difficulty (slope rating)
+    const roundsWithSlope = rounds.filter(r => r.slopeRating)
+    if (roundsWithSlope.length >= 2) {
+      const hardCourses = roundsWithSlope.filter(r => parseInt(r.slopeRating) > 135)
+      const easyCourses = roundsWithSlope.filter(r => parseInt(r.slopeRating) <= 125)
+      
+      if (hardCourses.length > 0 && easyCourses.length > 0) {
+        const hardAvg = hardCourses.reduce((sum, r) => sum + (r.score - r.par), 0) / hardCourses.length
+        const easyAvg = easyCourses.reduce((sum, r) => sum + (r.score - r.par), 0) / easyCourses.length
+        
+        if (hardAvg - easyAvg > 5) {
+          courseRecommendations.push({
+            category: 'Course Difficulty',
+            icon: '⛰️',
+            title: 'Struggling on Difficult Courses',
+            description: `You score ${(hardAvg - easyAvg).toFixed(1)} strokes higher on challenging courses (slope >135). Focus on course management and conservative play.`,
+            priority: 'medium',
+            actionItems: ['Play more conservatively on tough courses', 'Focus on accuracy over distance', 'Practice course management scenarios']
+          })
+        }
+      }
+    }
+    
+    // Analyze tee selection performance
+    const teePerformance = {}
+    rounds.forEach(round => {
+      if (!teePerformance[round.tees]) {
+        teePerformance[round.tees] = []
+      }
+      teePerformance[round.tees].push(round.score - round.par)
+    })
+    
+    const teeKeys = Object.keys(teePerformance).filter(tee => teePerformance[tee].length >= 2)
+    if (teeKeys.length >= 2) {
+      const teeAverages = {}
+      teeKeys.forEach(tee => {
+        teeAverages[tee] = teePerformance[tee].reduce((sum, score) => sum + score, 0) / teePerformance[tee].length
+      })
+      
+      // Find best performing tee
+      const bestTee = Object.keys(teeAverages).reduce((a, b) => teeAverages[a] < teeAverages[b] ? a : b)
+      const worstTee = Object.keys(teeAverages).reduce((a, b) => teeAverages[a] > teeAverages[b] ? a : b)
+      
+      if (teeAverages[worstTee] - teeAverages[bestTee] > 3) {
+        courseRecommendations.push({
+          category: 'Tee Selection',
+          icon: '📏',
+          title: 'Optimize Tee Selection',
+          description: `You perform ${(teeAverages[worstTee] - teeAverages[bestTee]).toFixed(1)} strokes better from ${bestTee} tees vs ${worstTee} tees. Consider playing appropriate tees for your skill level.`,
+          priority: 'medium',
+          actionItems: [`Play more rounds from ${bestTee} tees`, 'Choose tees based on driving distance', 'Focus on enjoyment over ego']
+        })
+      }
+    }
+    
+    // Analyze course familiarity
+    const courseCounts = {}
+    rounds.forEach(round => {
+      courseCounts[round.course] = (courseCounts[round.course] || 0) + 1
+    })
+    
+    const familiarCourses = Object.keys(courseCounts).filter(course => courseCounts[course] >= 3)
+    const newCourses = Object.keys(courseCounts).filter(course => courseCounts[course] === 1)
+    
+    if (familiarCourses.length > 0 && newCourses.length > 0) {
+      const familiarScores = rounds.filter(r => familiarCourses.includes(r.course))
+      const newScores = rounds.filter(r => newCourses.includes(r.course))
+      
+      const familiarAvg = familiarScores.reduce((sum, r) => sum + (r.score - r.par), 0) / familiarScores.length
+      const newAvg = newScores.reduce((sum, r) => sum + (r.score - r.par), 0) / newScores.length
+      
+      if (newAvg - familiarAvg > 4) {
+        courseRecommendations.push({
+          category: 'Course Management',
+          icon: '🗺️',
+          title: 'New Course Strategy',
+          description: `You score ${(newAvg - familiarAvg).toFixed(1)} strokes higher on unfamiliar courses. Develop a new course strategy.`,
+          priority: 'medium',
+          actionItems: ['Study course layout before playing', 'Play more conservatively on new courses', 'Consider a practice round or lesson']
+        })
+      }
+    }
+    
+    return courseRecommendations
+  }
+
+  // Hole-by-hole performance analysis
+  const analyzeHoleByHolePerformance = (rounds) => {
+    const holeRecommendations = []
+    const roundsWithHoles = rounds.filter(r => r.holeByHoleScores)
+    
+    if (roundsWithHoles.length >= 2) {
+      // Calculate average score per hole
+      const holeAverages = Array(18).fill(0).map((_, holeIndex) => {
+        const holeScores = roundsWithHoles
+          .map(r => r.holeByHoleScores[holeIndex])
+          .filter(score => score && score !== '')
+          .map(score => parseInt(score))
+        
+        return holeScores.length > 0 ? 
+          holeScores.reduce((sum, score) => sum + score, 0) / holeScores.length : 0
+      })
+      
+      // Find consistently difficult holes (scoring >1 over par on average)
+      const troubleHoles = holeAverages
+        .map((avg, index) => ({ hole: index + 1, average: avg }))
+        .filter(hole => hole.average > 5) // Assuming par 4 average, >5 is trouble
+        .sort((a, b) => b.average - a.average)
+        .slice(0, 3)
+      
+      if (troubleHoles.length > 0) {
+        holeRecommendations.push({
+          category: 'Hole Analysis',
+          icon: '🔴',
+          title: 'Trouble Holes Identified',
+          description: `You consistently struggle on holes ${troubleHoles.map(h => h.hole).join(', ')}. Average scores: ${troubleHoles.map(h => h.average.toFixed(1)).join(', ')}.`,
+          priority: 'high',
+          actionItems: [
+            'Study course layout for these specific holes',
+            'Practice approach shots for these distances',
+            'Consider more conservative play on trouble holes'
+          ]
+        })
+      }
+      
+      // Analyze front 9 vs back 9 performance
+      const front9Scores = roundsWithHoles.map(r => 
+        r.holeByHoleScores.slice(0, 9).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)
+      ).filter(score => score > 0)
+      
+      const back9Scores = roundsWithHoles.map(r => 
+        r.holeByHoleScores.slice(9, 18).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)
+      ).filter(score => score > 0)
+      
+      if (front9Scores.length > 0 && back9Scores.length > 0) {
+        const front9Avg = front9Scores.reduce((sum, s) => sum + s, 0) / front9Scores.length
+        const back9Avg = back9Scores.reduce((sum, s) => sum + s, 0) / back9Scores.length
+        
+        if (Math.abs(front9Avg - back9Avg) > 3) {
+          const worseHalf = front9Avg > back9Avg ? 'front 9' : 'back 9'
+          const betterHalf = front9Avg < back9Avg ? 'front 9' : 'back 9'
+          const difference = Math.abs(front9Avg - back9Avg).toFixed(1)
+          
+          holeRecommendations.push({
+            category: 'Course Management',
+            icon: '📊',
+            title: `${worseHalf.charAt(0).toUpperCase() + worseHalf.slice(1)} Performance Issue`,
+            description: `You score ${difference} strokes higher on the ${worseHalf} compared to the ${betterHalf}. This suggests fatigue or mental game issues.`,
+            priority: 'medium',
+            actionItems: [
+              worseHalf === 'back 9' ? 'Work on fitness and endurance' : 'Improve warm-up routine',
+              'Practice mental game and focus techniques',
+              'Analyze nutrition and hydration during rounds'
+            ]
+          })
+        }
+      }
+    }
+    
+    return holeRecommendations
+  }
+
+  // Golf Course Database (Popular courses with ratings)
+  const popularCourses = {
+    "Pebble Beach Golf Links": {
+      id: "pebble-beach",
+      name: "Pebble Beach Golf Links",
+      location: "Pebble Beach, CA",
+      par: 72,
+      tees: {
+        "Black": { yardage: 7040, rating: 76.8, slope: 150 },
+        "Blue": { yardage: 6816, rating: 74.8, slope: 142 },
+        "White": { yardage: 6380, rating: 72.3, slope: 135 },
+        "Red": { yardage: 5672, rating: 75.1, slope: 131 }
+      }
+    },
+    "Augusta National Golf Club": {
+      id: "augusta-national",
+      name: "Augusta National Golf Club",
+      location: "Augusta, GA",
+      par: 72,
+      tees: {
+        "Tournament": { yardage: 7435, rating: 76.2, slope: 137 },
+        "Member": { yardage: 6965, rating: 73.9, slope: 130 }
+      }
+    },
+    "St. Andrews Old Course": {
+      id: "st-andrews",
+      name: "St. Andrews Old Course",
+      location: "St. Andrews, Scotland",
+      par: 72,
+      tees: {
+        "Championship": { yardage: 7297, rating: 75.1, slope: 129 },
+        "Medal": { yardage: 6721, rating: 72.1, slope: 125 },
+        "Forward": { yardage: 5910, rating: 73.2, slope: 126 }
+      }
+    },
+    "Torrey Pines Golf Course": {
+      id: "torrey-pines",
+      name: "Torrey Pines Golf Course (South)",
+      location: "La Jolla, CA",
+      par: 72,
+      tees: {
+        "Black": { yardage: 7698, rating: 77.4, slope: 144 },
+        "Blue": { yardage: 7227, rating: 75.1, slope: 138 },
+        "White": { yardage: 6874, rating: 73.2, slope: 133 },
+        "Red": { yardage: 6177, rating: 75.9, slope: 130 }
+      }
+    },
+    "Bethpage Black": {
+      id: "bethpage-black",
+      name: "Bethpage State Park (Black Course)",
+      location: "Farmingdale, NY",
+      par: 71,
+      tees: {
+        "Black": { yardage: 7468, rating: 77.0, slope: 144 },
+        "Blue": { yardage: 7065, rating: 74.3, slope: 138 },
+        "White": { yardage: 6684, rating: 72.0, slope: 132 },
+        "Red": { yardage: 6112, rating: 75.2, slope: 131 }
+      }
+    }
+  }
+
+  // GolfCourseAPI.com integration
+  const GOLF_API_KEY = import.meta.env.VITE_GOLF_API_KEY
+  const GOLF_API_BASE = 'https://api.golfcourseapi.com'
+
+  const fetchFromGolfCourseAPI = async (query) => {
+    // Check if API key is available
+    if (!GOLF_API_KEY) {
+      console.warn('Golf API key not configured. Using local courses only.')
+      return []
+    }
+    
+    try {
+      const response = await fetch(`${GOLF_API_BASE}/courses?name=${encodeURIComponent(query)}`, {
+        headers: {
+          'Authorization': `Bearer ${GOLF_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      // Transform API response to match our course structure
+      return (data.courses || data.data || []).map(course => ({
+        id: course.id || course.course_id,
+        name: course.name || course.course_name,
+        location: `${course.city || ''}, ${course.state || course.country || ''}`.trim().replace(/^,\s*/, ''),
+        par: course.par || 72,
+        source: 'api',
+        // Note: API courses may not have detailed tee information
+        tees: {
+          'White': { yardage: course.yardage || '', rating: course.rating || '', slope: course.slope || '' }
+        }
+      }))
+    } catch (error) {
+      console.error('GolfCourseAPI Error:', error)
+      return []
+    }
+  }
+
+  // Course Search Functionality
+  const searchCourses = async (query) => {
+    if (query.length < 2) {
+      setCourseSearchResults([])
+      return
+    }
+
+    // Search local popular courses first
+    const localResults = Object.values(popularCourses)
+      .filter(course => 
+        course.name.toLowerCase().includes(query.toLowerCase()) ||
+        course.location.toLowerCase().includes(query.toLowerCase())
+      )
+      .map(course => ({ ...course, source: 'local' }))
+
+    // Search GolfCourseAPI.com for additional courses
+    const apiResults = await fetchFromGolfCourseAPI(query)
+    
+    // Combine results (local first, then API)
+    const combinedResults = [...localResults, ...apiResults]
+    setCourseSearchResults(combinedResults.slice(0, 10)) // Limit to 10 results
+  }
+
+  // Handle course selection
+  const selectCourse = (course) => {
+    const selectedTee = currentRound.tees
+    const teeData = course.tees?.[selectedTee] || course.tees?.['White'] || {}
+    
+    setCurrentRound({
+      ...currentRound,
+      course: course.name,
+      courseId: course.id,
+      par: course.par,
+      courseRating: teeData.rating || '',
+      slopeRating: teeData.slope || '',
+      yardage: teeData.yardage || ''
+    })
+    setShowCourseSearch(false)
+    setCourseSearchQuery('')
+    setCourseSearchResults([])
+  }
+
+  // Update course data when tee selection changes
+  const handleTeeChange = (newTee) => {
+    // Check local database first
+    let courseData = Object.values(popularCourses).find(c => c.id === currentRound.courseId)
+    
+    const updatedRound = {
+      ...currentRound,
+      tees: newTee
+    }
+    
+    if (courseData && courseData.tees[newTee]) {
+      updatedRound.courseRating = courseData.tees[newTee].rating
+      updatedRound.slopeRating = courseData.tees[newTee].slope
+      updatedRound.yardage = courseData.tees[newTee].yardage
+    } else {
+      // For API courses, may not have all tee data
+      // Keep existing values or clear them
+      updatedRound.courseRating = ''
+      updatedRound.slopeRating = ''
+      updatedRound.yardage = ''
+    }
+    
+    setCurrentRound(updatedRound)
+  }
+
+  // Course search with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (courseSearchQuery) {
+        searchCourses(courseSearchQuery)
+      }
+    }, 300)
+    
+    return () => clearTimeout(timeoutId)
+  }, [courseSearchQuery])
 
   return (
     <div className="golf-app">
@@ -270,23 +697,88 @@ function App() {
         <div className="form-section">
           <h3>Basic Round Info</h3>
           <div className="form-group">
-            <input
-              type="text"
-              placeholder="Course Name"
-              value={currentRound.course}
-              onChange={(e) => setCurrentRound({...currentRound, course: e.target.value})}
-            />
+            <div className="course-search-container">
+              <input
+                type="text"
+                placeholder="Search for golf course..."
+                value={showCourseSearch ? courseSearchQuery : currentRound.course}
+                onChange={(e) => {
+                  if (showCourseSearch) {
+                    setCourseSearchQuery(e.target.value)
+                  } else {
+                    setCurrentRound({...currentRound, course: e.target.value})
+                  }
+                }}
+                onFocus={() => {
+                  setShowCourseSearch(true)
+                  setCourseSearchQuery(currentRound.course)
+                }}
+              />
+              <button 
+                type="button" 
+                className="search-toggle-btn"
+                onClick={() => {
+                  setShowCourseSearch(!showCourseSearch)
+                  if (!showCourseSearch) {
+                    setCourseSearchQuery(currentRound.course)
+                  }
+                }}
+              >
+                🔍
+              </button>
+              
+              {showCourseSearch && courseSearchResults.length > 0 && (
+                <div className="course-search-results">
+                  {courseSearchResults.map((course, index) => (
+                    <div 
+                      key={index} 
+                      className="course-result-item"
+                      onClick={() => selectCourse(course)}
+                    >
+                      <div className="course-result-header">
+                        <div className="course-result-name">{course.name}</div>
+                        <span className={`course-source-badge ${course.source}`}>
+                          {course.source === 'local' ? '⭐' : '🌐'}
+                        </span>
+                      </div>
+                      <div className="course-result-location">{course.location}</div>
+                      <div className="course-result-par">Par {course.par}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
               type="date"
               value={currentRound.date}
               onChange={(e) => setCurrentRound({...currentRound, date: e.target.value})}
             />
-            <input
-              type="number"
-              placeholder="Score"
-              value={currentRound.score}
-              onChange={(e) => setCurrentRound({...currentRound, score: parseInt(e.target.value) || ''})}
-            />
+            <div className="score-input-container">
+              <div className="score-method-toggle">
+                <label className="toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={useHoleByHole}
+                    onChange={toggleScoringMethod}
+                  />
+                  <span>Hole-by-hole scoring</span>
+                </label>
+              </div>
+              
+              {!useHoleByHole ? (
+                <input
+                  type="number"
+                  placeholder="Total Score"
+                  value={currentRound.score}
+                  onChange={(e) => setCurrentRound({...currentRound, score: parseInt(e.target.value) || ''})}
+                />
+              ) : (
+                <div className="total-score-display">
+                  <span className="total-label">Total Score:</span>
+                  <span className="total-value">{calculateTotalScore(holeByHoleScores) || 0}</span>
+                </div>
+              )}
+            </div>
             <input
               type="number"
               placeholder="Par (default 72)"
@@ -295,7 +787,7 @@ function App() {
             />
             <select
               value={currentRound.tees}
-              onChange={(e) => setCurrentRound({...currentRound, tees: e.target.value})}
+              onChange={(e) => handleTeeChange(e.target.value)}
             >
               <option value="black">Black Tees</option>
               <option value="blue">Blue Tees</option>
@@ -303,8 +795,58 @@ function App() {
               <option value="red">Red Tees</option>
               <option value="gold">Gold Tees</option>
             </select>
+            
+            {currentRound.courseRating && (
+              <div className="course-info-display">
+                <div className="course-info-item">
+                  <label>Course Rating:</label>
+                  <span>{currentRound.courseRating}</span>
+                </div>
+                <div className="course-info-item">
+                  <label>Slope Rating:</label>
+                  <span>{currentRound.slopeRating}</span>
+                </div>
+                <div className="course-info-item">
+                  <label>Yardage:</label>
+                  <span>{currentRound.yardage} yards</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {useHoleByHole && (
+          <div className="form-section">
+            <h3>🎯 Hole-by-Hole Scoring</h3>
+            <div className="holes-grid">
+              {Array.from({length: 18}, (_, i) => (
+                <div key={i} className="hole-input">
+                  <label className="hole-label">Hole {i + 1}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="15"
+                    placeholder="-"
+                    value={holeByHoleScores[i]}
+                    onChange={(e) => handleHoleScoreChange(i, e.target.value)}
+                    className="hole-score-input"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="holes-summary">
+              <div className="holes-progress">
+                <span>Holes completed: {holeByHoleScores.filter(score => score !== '').length}/18</span>
+              </div>
+              <div className="front-nine">
+                <span>Front 9: {calculateTotalScore(holeByHoleScores.slice(0, 9))}</span>
+              </div>
+              <div className="back-nine">
+                <span>Back 9: {calculateTotalScore(holeByHoleScores.slice(9, 18))}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="form-section">
           <h3>Course Conditions</h3>
@@ -458,6 +1000,20 @@ function App() {
                   <span className="round-date">{round.date}</span>
                   <span className="tees-badge">{round.tees} tees</span>
                 </div>
+                
+                {(round.courseRating || round.yardage) && (
+                  <div className="round-course-info">
+                    {round.courseRating && (
+                      <span className="course-stat">Rating: {round.courseRating}</span>
+                    )}
+                    {round.slopeRating && (
+                      <span className="course-stat">Slope: {round.slopeRating}</span>
+                    )}
+                    {round.yardage && (
+                      <span className="course-stat">Yardage: {round.yardage}</span>
+                    )}
+                  </div>
+                )}
                 <div className="round-score">
                   <span className="score">Score: {round.score}</span>
                   <span className="vs-par">
@@ -488,6 +1044,24 @@ function App() {
                       {round.bunkerShots && <span>Bunkers: {round.bunkerShots}</span>}
                       {round.penalties && <span>Penalties: {round.penalties}</span>}
                       {round.drivingDistance && <span>Avg Drive: {round.drivingDistance}y</span>}
+                    </div>
+                  </div>
+                )}
+                
+                {round.holeByHoleScores && (
+                  <div className="round-holes">
+                    <h4>Hole-by-Hole Scores</h4>
+                    <div className="round-holes-grid">
+                      {round.holeByHoleScores.map((score, index) => (
+                        <div key={index} className="round-hole-score">
+                          <span className="hole-number">{index + 1}</span>
+                          <span className="hole-score">{score || '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="round-holes-summary">
+                      <span>Front 9: {round.holeByHoleScores.slice(0, 9).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)}</span>
+                      <span>Back 9: {round.holeByHoleScores.slice(9, 18).filter(s => s).reduce((sum, s) => sum + parseInt(s), 0)}</span>
                     </div>
                   </div>
                 )}

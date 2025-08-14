@@ -64,7 +64,17 @@ This is a single-page golf tracking application with the following key component
   drivingDistance: string, // Average driving distance in yards
   
   // Additional Notes
-  notes: string // Free-form text for round observations
+  notes: string, // Free-form text for round observations
+  
+  // Course Information (auto-populated when available)
+  courseId: string, // Unique course identifier
+  courseRating: number, // Course rating for selected tees
+  slopeRating: number, // Slope rating for selected tees
+  yardage: number, // Course yardage for selected tees
+  
+  // Hole-by-Hole Scoring (optional)
+  holeByHoleScores: Array<string> | null, // Array of 18 hole scores
+  useHoleByHole: boolean // Whether hole-by-hole scoring was used
 }
 ```
 
@@ -84,20 +94,34 @@ This is a single-page golf tracking application with the following key component
    - Fairways hit percentage
    - Greens in regulation percentage
 
-3. **Comprehensive Round Entry Form**:
+3. **Smart Course Selection & Auto-Population** 🔍:
+   - **Course Search**: Search from database of popular golf courses
+   - **Auto-Population**: Automatic par, course rating, slope rating, and yardage based on tee selection
+   - **Course Database**: Includes famous courses like Pebble Beach, Augusta National, St. Andrews
+   - **Tee-Specific Data**: Different ratings and yardages for each tee box
+   - **API Ready**: Prepared for integration with GolfCourseAPI.com (30,000+ courses)
+
+4. **Flexible Scoring Options** 🎯:
+   - **Total Score Entry**: Traditional single score input
+   - **Hole-by-Hole Scoring**: Detailed 18-hole score tracking with live totals
+   - **Real-time Calculations**: Automatic front 9, back 9, and total score calculations
+   - **Progress Tracking**: Visual indication of holes completed during round entry
+
+5. **Comprehensive Round Entry Form**:
    - Basic round info (course, date, score, par, tees)
    - Course conditions (weather, temperature, wind, course condition)
    - Performance statistics (fairways hit, GIR, putts, chips, bunker shots, penalties, driving distance)
    - Round notes for observations and improvement areas
 
-4. **Detailed Round History**: Shows last 10 rounds with:
+6. **Detailed Round History**: Shows last 10 rounds with:
    - Score and par differential
    - Tee selection indicator
+   - Course ratings, slope, and yardage display
    - Course conditions with weather icons
    - Performance statistics grid
    - Personal notes and observations
 
-5. **Advanced Analytics**:
+7. **Advanced Analytics**:
    - Handicap calculation using score differential
    - Fairway accuracy percentage calculation
    - Greens in regulation percentage
@@ -149,6 +173,11 @@ The smart recommendations system analyzes golf performance data to provide perso
 - **Course Management**: Penalty stroke reduction and smart play strategies
 - **Weather Adaptation**: Performance correlation with weather conditions
 - **Performance Trends**: Score trending analysis and momentum recognition
+- **Course Difficulty Analysis**: Performance correlation with slope ratings and course difficulty
+- **Tee Selection Optimization**: Recommends optimal tee selection based on performance data
+- **Course Familiarity Impact**: Analyzes performance differences between familiar and new courses
+- **Hole-by-Hole Analysis**: Identifies trouble holes and front 9 vs back 9 performance patterns
+- **Round Consistency**: Tracks scoring patterns within individual rounds
 
 **Recommendation Types**:
 - **Practice Focus Areas**: Specific skills to work on based on statistical weaknesses
@@ -162,15 +191,61 @@ The smart recommendations system analyzes golf performance data to provide perso
 - 🟡 **Medium Priority**: Areas with moderate improvement potential
 - 🟢 **Low Priority**: Strengths to maintain or minor optimizations
 
+### Course Integration System
+The application includes a sophisticated course management system:
+
+**Course Database**:
+- **Local Database**: Pre-loaded with popular courses (Pebble Beach, Augusta National, St. Andrews, etc.)
+- **GolfCourseAPI.com Integration**: Live access to 30,000+ courses worldwide
+- **Hybrid Search**: Combines local favorites with global course database
+- **Course Search**: Real-time search functionality with autocomplete
+- **Tee-Specific Data**: Accurate course ratings, slope ratings, and yardages for each tee
+- **API Key**: Securely configured via environment variables (free tier: 300 requests/day)
+
+**Auto-Population Features**:
+- Automatic par setting based on course selection
+- Course rating and slope rating population based on tee choice
+- Yardage information for accurate performance analysis
+- Course location and difficulty information
+
+**Course-Specific AI Insights**:
+- Performance analysis by course difficulty (slope rating)
+- Tee selection optimization recommendations
+- Course familiarity impact analysis
+- Difficulty-adjusted performance expectations
+
 ### Data Analysis Opportunities
 With the enhanced data model and AI engine, the application provides insights into:
 - Performance trends under different weather conditions
 - Correlation between course conditions and scoring
+- Course difficulty impact on performance (slope rating analysis)
 - Strengths and weaknesses identification (driving vs putting vs short game)
 - Progress tracking over time for specific skills
 - Tee selection impact on performance
+- Course familiarity effects on scoring
 - Personalized improvement roadmaps
 - Predictive performance modeling
+
+### API Integration
+The application is configured with GolfCourseAPI.com integration:
+- **API Key**: Stored securely in environment variables (`.env` file)
+- **Rate Limits**: 300 requests per day (free tier)
+- **Hybrid Search**: Local database + API search for comprehensive coverage
+- **Error Handling**: Graceful fallback to local database if API is unavailable
+- **Course Sources**: Visual indicators distinguish between local (⭐) and API (🌐) courses
+
+### Security Configuration
+**Environment Variables**:
+- API keys are stored in `.env` file (never committed to git)
+- `.env` is added to `.gitignore` to prevent accidental exposure
+- `.env.example` provided as template for setup
+- Application gracefully handles missing API keys
+
+**Setup Instructions**:
+1. Copy `.env.example` to `.env`
+2. Add your GolfCourseAPI.com API key to `.env`
+3. Never commit the `.env` file to version control
+4. API key format: `VITE_GOLF_API_KEY=your_key_here`
 
 ### Testing
 No test framework is currently configured. Consider adding Vitest for unit testing React components.

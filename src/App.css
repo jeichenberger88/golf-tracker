@@ -109,6 +109,269 @@ header p {
   border-color: #4a7c59;
 }
 
+/* Course Search Functionality */
+.course-search-container {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.course-search-container input {
+  flex: 1;
+}
+
+.search-toggle-btn {
+  background: #4a7c59;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.search-toggle-btn:hover {
+  background: #2d5016;
+}
+
+.course-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #4a7c59;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.course-result-item {
+  padding: 1rem;
+  border-bottom: 1px solid #e1e1e1;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.course-result-item:hover {
+  background: #f8f9fa;
+}
+
+.course-result-item:last-child {
+  border-bottom: none;
+}
+
+.course-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.course-result-name {
+  font-weight: 600;
+  color: #2d5016;
+  flex: 1;
+}
+
+.course-source-badge {
+  font-size: 0.8rem;
+  padding: 0.2rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.course-source-badge.local {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+}
+
+.course-source-badge.api {
+  background: #d1ecf1;
+  border: 1px solid #bee5eb;
+}
+
+.course-result-location {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.course-result-par {
+  color: #4a7c59;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Course Info Display */
+.course-info-display {
+  background: #f0f8f0;
+  border: 1px solid #4a7c59;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.course-info-item {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.course-info-item label {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.course-info-item span {
+  font-weight: 600;
+  color: #2d5016;
+  font-size: 1.1rem;
+}
+
+/* Hole-by-Hole Scoring */
+.score-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.score-method-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #2d5016;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4a7c59;
+}
+
+.total-score-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f0f8f0;
+  border: 2px solid #4a7c59;
+  border-radius: 8px;
+}
+
+.total-label {
+  font-weight: 600;
+  color: #2d5016;
+}
+
+.total-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #4a7c59;
+}
+
+.holes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.hole-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hole-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #666;
+  text-align: center;
+}
+
+.hole-score-input {
+  width: 60px;
+  padding: 0.5rem;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  transition: border-color 0.3s ease;
+}
+
+.hole-score-input:focus {
+  outline: none;
+  border-color: #4a7c59;
+}
+
+.hole-score-input:not(:placeholder-shown) {
+  background: #f0f8f0;
+  border-color: #4a7c59;
+}
+
+.holes-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e1e1e1;
+}
+
+.holes-summary > div {
+  text-align: center;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e1e1e1;
+}
+
+.holes-summary span {
+  font-weight: 600;
+  color: #2d5016;
+}
+
+.holes-progress span {
+  color: #4a7c59;
+}
+
+@media (max-width: 768px) {
+  .holes-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .hole-score-input {
+    width: 50px;
+    padding: 0.4rem;
+    font-size: 1rem;
+  }
+  
+  .holes-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
 .add-round-btn {
   background: #4a7c59;
   color: white;
@@ -297,6 +560,24 @@ header p {
   font-weight: 500;
 }
 
+.round-course-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.course-stat {
+  background: #e8f5e8;
+  color: #2d5016;
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
 .round-header h3 {
   margin: 0;
   color: #2d5016;
@@ -355,6 +636,73 @@ header p {
   color: #666;
   line-height: 1.4;
   font-style: italic;
+}
+
+/* Round Hole-by-Hole Display */
+.round-holes {
+  margin-bottom: 1rem;
+}
+
+.round-holes-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.round-hole-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e1e1e1;
+}
+
+.hole-number {
+  font-size: 0.7rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.hole-score {
+  font-weight: bold;
+  color: #2d5016;
+  font-size: 1rem;
+}
+
+.round-holes-summary {
+  display: flex;
+  justify-content: space-around;
+  padding: 0.75rem;
+  background: #f0f8f0;
+  border-radius: 6px;
+  border: 1px solid #4a7c59;
+}
+
+.round-holes-summary span {
+  font-weight: 600;
+  color: #2d5016;
+}
+
+@media (max-width: 768px) {
+  .round-holes-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.25rem;
+  }
+  
+  .round-hole-score {
+    padding: 0.25rem;
+  }
+  
+  .hole-number {
+    font-size: 0.6rem;
+  }
+  
+  .hole-score {
+    font-size: 0.9rem;
+  }
 }
 
 .score {
